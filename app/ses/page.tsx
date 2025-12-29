@@ -16,23 +16,33 @@ interface SentEmail {
   id?: string
   source?: string
   Source?: string
-  destination?: string[]
-  Destination?: string[]
+  from?: string
+  From?: string
+  destination?: string[] | any
+  Destination?: string[] | any
   DestinationToAddresses?: string[]
+  to?: string | string[]
+  To?: string | string[]
+  recipients?: string | string[]
   subject?: string
   Subject?: string
   body?: string
+  text?: string
+  html?: string
+  content?: string
   Body?: {
     Text?: { Data?: string }
     Html?: { Data?: string }
-  }
+    html_part?: string
+    text_part?: string
+  } | any
   Message?: {
     Subject?: { Data?: string }
     Body?: {
-      Text?: { Data?: string }
-      Html?: { Data?: string }
-    }
-  }
+      Text?: { Data?: string } | string
+      Html?: { Data?: string } | string
+    } | any
+  } | any
   timestamp?: string
   Timestamp?: string
   raw?: string
@@ -81,8 +91,8 @@ export default function SESPage() {
       // Atualizar dados de forma otimizada
       setData((prevData) => {
         // Comparar apenas IDs dos emails para evitar re-render desnecessário
-        const prevEmailIds = prevData?.sentEmails?.map(e => e.id || e.Id).join(',') || ''
-        const newEmailIds = result.sentEmails?.map((e: any) => e.id || e.Id).join(',') || ''
+        const prevEmailIds = prevData?.sentEmails?.map((e: any) => e.id || e.Id || e.messageId || e.MessageId).join(',') || ''
+        const newEmailIds = result.sentEmails?.map((e: any) => e.id || e.Id || e.messageId || e.MessageId).join(',') || ''
         
         // Só atualizar se houver mudança nos emails
         if (prevEmailIds !== newEmailIds || !prevData) {
@@ -303,16 +313,22 @@ export default function SESPage() {
                         if (dest?.ToAddresses) return dest.ToAddresses
                         return dest
                       }).flat().filter(Boolean)
-                    } else if (email.destination?.ToAddresses) {
-                      destinations = Array.isArray(email.destination.ToAddresses) 
-                        ? email.destination.ToAddresses 
-                        : [email.destination.ToAddresses]
-                    } else if (email.Destination?.ToAddresses) {
-                      destinations = Array.isArray(email.Destination.ToAddresses) 
-                        ? email.Destination.ToAddresses 
-                        : [email.Destination.ToAddresses]
+                    } else if (email.destination && typeof email.destination === 'object' && 'ToAddresses' in email.destination) {
+                      const destObj = email.destination as any
+                      destinations = Array.isArray(destObj.ToAddresses) 
+                        ? destObj.ToAddresses 
+                        : [destObj.ToAddresses]
+                    } else if (email.Destination && typeof email.Destination === 'object' && 'ToAddresses' in email.Destination) {
+                      const destObj = email.Destination as any
+                      destinations = Array.isArray(destObj.ToAddresses) 
+                        ? destObj.ToAddresses 
+                        : [destObj.ToAddresses]
                     } else if (email.Destination) {
-                      destinations = Array.isArray(email.Destination) ? email.Destination : [email.Destination]
+                      if (Array.isArray(email.Destination)) {
+                        destinations = email.Destination
+                      } else if (typeof email.Destination === 'string') {
+                        destinations = [email.Destination]
+                      }
                     } else if (email.DestinationToAddresses) {
                       destinations = Array.isArray(email.DestinationToAddresses) ? email.DestinationToAddresses : [email.DestinationToAddresses]
                     } else if (email.to) {
