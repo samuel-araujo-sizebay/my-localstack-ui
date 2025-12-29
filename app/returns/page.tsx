@@ -889,20 +889,38 @@ export default function ReturnsPage() {
                     </div>
                   )}
 
-                  <div className="mt-3 space-y-1 text-sm">
+                  <div className="mt-3 space-y-2">
                     {status.inputFileUrl && (
-                      <div>
-                        <span className="font-medium">Input:</span>{' '}
-                        <a href={status.inputFileUrl} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">
-                          {status.inputFileUrl}
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium text-gray-600 dark:text-gray-400 min-w-[60px]">Input:</span>
+                        <a 
+                          href={status.inputFileUrl} 
+                          target="_blank" 
+                          rel="noopener noreferrer" 
+                          className="text-sm text-blue-500 hover:text-blue-700 dark:hover:text-blue-400 hover:underline flex items-center gap-1 truncate max-w-md"
+                          title={status.inputFileUrl}
+                        >
+                          <FileText className="w-4 h-4 flex-shrink-0" />
+                          <span className="truncate">
+                            {status.inputFileUrl.split('/').pop()?.split('?')[0] || 'Arquivo de entrada'}
+                          </span>
                         </a>
                       </div>
                     )}
                     {status.outputFileUrl && (
-                      <div>
-                        <span className="font-medium">Output:</span>{' '}
-                        <a href={status.outputFileUrl} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">
-                          {status.outputFileUrl}
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium text-gray-600 dark:text-gray-400 min-w-[60px]">Output:</span>
+                        <a 
+                          href={status.outputFileUrl} 
+                          target="_blank" 
+                          rel="noopener noreferrer" 
+                          className="text-sm text-blue-500 hover:text-blue-700 dark:hover:text-blue-400 hover:underline flex items-center gap-1 truncate max-w-md"
+                          title={status.outputFileUrl}
+                        >
+                          <FileDown className="w-4 h-4 flex-shrink-0" />
+                          <span className="truncate">
+                            {status.outputFileUrl.split('/').pop()?.split('?')[0] || 'Arquivo de saída'}
+                          </span>
                         </a>
                       </div>
                     )}
