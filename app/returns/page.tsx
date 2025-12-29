@@ -36,6 +36,7 @@ export default function ReturnsPage() {
   // Process CSV
   const [returnsFileKey, setReturnsFileKey] = useState('')
   const [domain, setDomain] = useState('preprod.na-kd.com')
+  const [enableNotification, setEnableNotification] = useState(true)
   const [recipientEmail, setRecipientEmail] = useState('samuel.araujo@sizebay.com')
   const [recipientName, setRecipientName] = useState('samuel')
   const [processType, setProcessType] = useState('PRODUCT_ID')
@@ -52,6 +53,7 @@ export default function ReturnsPage() {
   const [pastedText, setPastedText] = useState('')
   const [generatedCsv, setGeneratedCsv] = useState('')
   const [csvFileName, setCsvFileName] = useState('returns.csv')
+  const [productFieldType, setProductFieldType] = useState<'product_id' | 'product_sku' | 'product_url'>('product_sku')
 
   useEffect(() => {
     // Carregar sessionId do localStorage se existir
@@ -120,33 +122,47 @@ export default function ReturnsPage() {
   }
 
   const handleProcessCsv = async () => {
-    if (!sessionId || !returnsFileKey || !domain || !recipientEmail || !recipientName) {
+    if (!sessionId || !returnsFileKey || !domain) {
       if (!returnsFileKey) {
         alert('É necessário gerar um CSV ou fazer upload de um arquivo primeiro')
       } else {
-        alert('Preencha todos os campos obrigatórios (Domain, Recipient Email, Recipient Name)')
+        alert('Preencha todos os campos obrigatórios (Domain)')
       }
+      return
+    }
+
+    // Validar campos de notificação apenas se estiver habilitada
+    if (enableNotification && (!recipientEmail || !recipientName)) {
+      alert('Se as notificações estiverem habilitadas, preencha Recipient Email e Recipient Name')
       return
     }
 
     try {
       setProcessing(true)
+      
+      // Construir payload
+      const payload: any = {
+        returnsFileKey,
+        domain,
+        processType,
+        ignoreOrderedSize,
+      }
+
+      // Adicionar notification apenas se estiver habilitada
+      if (enableNotification) {
+        payload.notification = {
+          recipientEmail,
+          recipientName,
+        }
+      }
+
       const response = await fetch('/api/returns/process-csv', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'x-session-id': sessionId,
         },
-        body: JSON.stringify({
-          returnsFileKey,
-          domain,
-          notification: {
-            recipientEmail,
-            recipientName,
-          },
-          processType,
-          ignoreOrderedSize,
-        }),
+        body: JSON.stringify(payload),
       })
 
       if (!response.ok) {
@@ -241,12 +257,19 @@ export default function ReturnsPage() {
       // Extrair Order Date (formato: 12/29/2025 ou MM/DD/YYYY)
       const orderDateMatch = pastedText.match(/Order date:\s*(\d{1,2}\/\d{1,2}\/\d{4})/i) || pastedText.match(/(\d{1,2}\/\d{1,2}\/\d{4})/)
       
-      // Converter data de MM/DD/YYYY para YYYY-MM-DD
+      // Converter para formato DD/MM/YYYY (dia/mês/ano)
       let formattedDate = ''
       if (orderDateMatch) {
-        const dateParts = orderDateMatch[1].split('/')
-        if (dateParts.length === 3) {
-          formattedDate = `${dateParts[2]}-${dateParts[0].padStart(2, '0')}-${dateParts[1].padStart(2, '0')}`
+        const dateMatch = orderDateMatch[1].match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/)
+        if (dateMatch) {
+          // Assumir que a data extraída está em MM/DD/YYYY e converter para DD/MM/YYYY
+          const month = dateMatch[1].padStart(2, '0')
+          const day = dateMatch[2].padStart(2, '0')
+          const year = dateMatch[3]
+          // Converter de MM/DD/YYYY para DD/MM/YYYY
+          formattedDate = `${day}/${month}/${year}`
+        } else {
+          formattedDate = orderDateMatch[1]
         }
       }
       
@@ -385,24 +408,58 @@ export default function ReturnsPage() {
       }
       
       // Gerar CSV no formato correto da API
-      // Formato: order_id, order_date, product_id/sku/url, size_ordered, return_reason
-      const headers = ['order_id', 'order_date', 'product_id/sku/url', 'size_ordered', 'return_reason']
+      // Formato: order_id, order_date, product_id/product_sku/product_url, size_ordered, return_reason
+      const headers = ['order_id', 'order_date', productFieldType, 'size_ordered', 'return_reason']
       const csvRows = [
         headers.join(','), // Usar vírgula como separador
         ...products.map(p => {
-          // Converter data de YYYY-MM-DD para MM/DD/YYYY se necessário
+          // Garantir que a data está no formato DD/MM/YYYY (dia/mês/ano)
           let formattedOrderDate = p.orderDate
+          
+          // Se estiver em formato YYYY-MM-DD, converter para DD/MM/YYYY
           if (formattedOrderDate && formattedOrderDate.includes('-')) {
             const parts = formattedOrderDate.split('-')
             if (parts.length === 3) {
-              formattedOrderDate = `${parts[1]}/${parts[2]}/${parts[0]}`
+              // Converter de YYYY-MM-DD para DD/MM/YYYY
+              formattedOrderDate = `${parts[2]}/${parts[1]}/${parts[0]}`
+            }
+          }
+          
+          // Validar e formatar para DD/MM/YYYY se necessário
+          if (formattedOrderDate) {
+            const dateMatch = formattedOrderDate.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/)
+            if (dateMatch) {
+              // Se a data já está em formato MM/DD/YYYY, converter para DD/MM/YYYY
+              // Assumimos que se o primeiro número > 12, já está em DD/MM/YYYY
+              const firstPart = parseInt(dateMatch[1])
+              const secondPart = parseInt(dateMatch[2])
+              
+              if (firstPart > 12) {
+                // Já está em DD/MM/YYYY, apenas garantir zeros à esquerda
+                const day = dateMatch[1].padStart(2, '0')
+                const month = dateMatch[2].padStart(2, '0')
+                const year = dateMatch[3]
+                formattedOrderDate = `${day}/${month}/${year}`
+              } else if (secondPart > 12) {
+                // Está em MM/DD/YYYY, converter para DD/MM/YYYY
+                const month = dateMatch[1].padStart(2, '0')
+                const day = dateMatch[2].padStart(2, '0')
+                const year = dateMatch[3]
+                formattedOrderDate = `${day}/${month}/${year}`
+              } else {
+                // Ambos <= 12, assumir MM/DD/YYYY e converter para DD/MM/YYYY
+                const month = dateMatch[1].padStart(2, '0')
+                const day = dateMatch[2].padStart(2, '0')
+                const year = dateMatch[3]
+                formattedOrderDate = `${day}/${month}/${year}`
+              }
             }
           }
           
           return [
             p.orderId, // order_id
-            formattedOrderDate || '', // order_date
-            p.productIdentifier, // product_id/sku/url
+            formattedOrderDate || '', // order_date (DD/MM/YYYY)
+            p.productIdentifier, // product_id/product_sku/product_url (valor extraído)
             p.sizeOrdered, // size_ordered
             'UNKNOWN', // return_reason padrão
           ].join(',')
@@ -530,6 +587,24 @@ export default function ReturnsPage() {
                 placeholder="Cole aqui o texto completo do pedido..."
                 className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 h-40 font-mono text-sm"
               />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium mb-2">
+                Tipo de Campo de Produto:
+              </label>
+              <select
+                value={productFieldType}
+                onChange={(e) => setProductFieldType(e.target.value as 'product_id' | 'product_sku' | 'product_url')}
+                className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700"
+              >
+                <option value="product_id">product_id</option>
+                <option value="product_sku">product_sku</option>
+                <option value="product_url">product_url</option>
+              </select>
+              <p className="text-xs text-gray-500 mt-1">
+                O valor extraído será usado no campo selecionado
+              </p>
             </div>
             
             <div className="flex gap-2 flex-wrap">
@@ -694,28 +769,43 @@ export default function ReturnsPage() {
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium mb-2">Recipient Email *</label>
-                <input
-                  type="email"
-                  value={recipientEmail}
-                  onChange={(e) => setRecipientEmail(e.target.value)}
-                  placeholder="example@sizebay.com"
-                  className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-2">Recipient Name *</label>
-                <input
-                  type="text"
-                  value={recipientName}
-                  onChange={(e) => setRecipientName(e.target.value)}
-                  placeholder="Roberto Alves"
-                  className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700"
-                />
-              </div>
+            <div className="flex items-center gap-2 p-3 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700">
+              <input
+                type="checkbox"
+                id="enableNotification"
+                checked={enableNotification}
+                onChange={(e) => setEnableNotification(e.target.checked)}
+                className="w-4 h-4"
+              />
+              <label htmlFor="enableNotification" className="text-sm font-medium">
+                Habilitar notificações por email (opcional)
+              </label>
             </div>
+
+            {enableNotification && (
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-2">Recipient Email *</label>
+                  <input
+                    type="email"
+                    value={recipientEmail}
+                    onChange={(e) => setRecipientEmail(e.target.value)}
+                    placeholder="example@sizebay.com"
+                    className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-2">Recipient Name *</label>
+                  <input
+                    type="text"
+                    value={recipientName}
+                    onChange={(e) => setRecipientName(e.target.value)}
+                    placeholder="Roberto Alves"
+                    className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700"
+                  />
+                </div>
+              </div>
+            )}
 
             <div>
               <label className="block text-sm font-medium mb-2">Process Type</label>
