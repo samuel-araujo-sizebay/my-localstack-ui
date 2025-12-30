@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server'
 import { returnsApi } from '@/lib/returns-api'
 
+// Forçar rota dinâmica (usa request.headers e request.formData)
+export const dynamic = 'force-dynamic'
+
 export async function POST(request: Request) {
   try {
     const sessionId = request.headers.get('x-session-id')

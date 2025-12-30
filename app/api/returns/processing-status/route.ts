@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server'
 import { returnsApi } from '@/lib/returns-api'
 
+// Forçar rota dinâmica (usa request.url)
+export const dynamic = 'force-dynamic'
+
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url)

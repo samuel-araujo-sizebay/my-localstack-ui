@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server'
 import { returnsApi, ProcessCsvRequest } from '@/lib/returns-api'
 
+// Forçar rota dinâmica (usa request.headers e request.json)
+export const dynamic = 'force-dynamic'
+
 export async function POST(request: Request) {
   try {
     const body = await request.json()
