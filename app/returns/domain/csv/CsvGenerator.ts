@@ -60,6 +60,14 @@ export class CsvGenerator {
   }
 
   /**
+   * Sorteia um return reason aleatório
+   */
+  static getRandomReturnReason(): 'UNKNOWN' | 'SMALL' | 'BIG' {
+    const reasons: Array<'UNKNOWN' | 'SMALL' | 'BIG'> = ['UNKNOWN', 'SMALL', 'BIG']
+    return reasons[Math.floor(Math.random() * reasons.length)]
+  }
+
+  /**
    * Gera CSV a partir de produtos parseados
    */
   static generate(
@@ -75,12 +83,13 @@ export class CsvGenerator {
       headers.join(','),
       ...products.map(p => {
         const formattedOrderDate = this.formatDateToDDMMYYYY(p.orderDate)
+        const returnReason = this.getRandomReturnReason()
         return [
           p.orderId,
           formattedOrderDate || '',
           p.productIdentifier,
           p.sizeOrdered,
-          'UNKNOWN',
+          returnReason,
         ].join(',')
       })
     ]

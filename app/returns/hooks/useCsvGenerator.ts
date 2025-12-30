@@ -26,8 +26,12 @@ export function useCsvGenerator() {
         return
       }
 
+      // Debug: verificar se os tamanhos estão sendo extraídos corretamente
+      console.log('Produtos parseados:', products)
+
       // Gerar CSV usando o serviço de domínio
       const result = CsvGenerator.generate(products, productFieldType)
+      console.log('CSV gerado:', result)
       setGeneratedCsv(result)
     } catch (error: any) {
       console.error('Erro ao gerar CSV:', error)

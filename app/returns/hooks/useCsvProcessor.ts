@@ -10,6 +10,7 @@ export function useCsvProcessor(sessionId: string) {
   const [enableNotification, setEnableNotification] = useState(true)
   const [recipientEmail, setRecipientEmail] = useState('samuel.araujo@sizebay.com')
   const [recipientName, setRecipientName] = useState('samuel')
+  const [locale, setLocale] = useState<'pt' | 'en' | 'es'>('pt')
   const [processType, setProcessType] = useState<'PRODUCT_ID' | 'PRODUCT_SKU' | 'PRODUCT_ID_ON_ORDER_PERMALINK'>('PRODUCT_ID')
   const [ignoreOrderedSize, setIgnoreOrderedSize] = useState(false)
   const [processing, setProcessing] = useState(false)
@@ -47,6 +48,7 @@ export function useCsvProcessor(sessionId: string) {
         payload.notification = {
           recipientEmail,
           recipientName,
+          locale,
         }
       }
 
@@ -87,6 +89,8 @@ export function useCsvProcessor(sessionId: string) {
     setRecipientEmail,
     recipientName,
     setRecipientName,
+    locale,
+    setLocale,
     processType,
     setProcessType,
     ignoreOrderedSize,

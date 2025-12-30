@@ -16,16 +16,17 @@ import { ProcessingStatus } from './components/ProcessingStatus'
 export default function ReturnsPage() {
   const { sessionId, setSessionId } = useReturnsSession()
   const [returnsFileKey, setReturnsFileKey] = useState<string | null>(null)
+  const [refreshTrigger, setRefreshTrigger] = useState(0)
 
   const handleFileKeyGenerated = (fileKey: string) => {
     setReturnsFileKey(fileKey)
   }
 
   const handleProcessSuccess = () => {
-    // Atualizar status após processar (será chamado pelo componente ProcessingStatus)
+    // Atualizar status após processar CSV
+    // Aguardar 2 segundos para dar tempo do processamento iniciar
     setTimeout(() => {
-      // O componente ProcessingStatus tem seu próprio botão de atualizar
-      // Aqui podemos adicionar lógica adicional se necessário
+      setRefreshTrigger(prev => prev + 1)
     }, 2000)
   }
 
@@ -62,7 +63,10 @@ export default function ReturnsPage() {
           onProcessSuccess={handleProcessSuccess}
         />
 
-        <ProcessingStatus sessionId={sessionId} />
+        <ProcessingStatus 
+          sessionId={sessionId} 
+          key={refreshTrigger}
+        />
       </div>
     </main>
   )

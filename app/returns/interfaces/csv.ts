@@ -2,6 +2,8 @@ export type ProductFieldType = 'product_id' | 'product_sku' | 'product_url'
 
 export type ProcessType = 'PRODUCT_ID' | 'PRODUCT_SKU' | 'PRODUCT_ID_ON_ORDER_PERMALINK'
 
+export type ReturnReason = 'UNKNOWN' | 'SMALL' | 'BIG'
+
 /**
  * Produto parseado do texto de pedido
  */
@@ -48,6 +50,7 @@ export interface ProcessCsvParams {
   notification?: {
     recipientEmail: string
     recipientName: string
+    locale?: 'pt' | 'en' | 'es'
   }
 }
 

@@ -1,9 +1,12 @@
+import { useEffect } from 'react'
 import { Calendar, RefreshCw, CheckCircle, XCircle, FileText, FileDown } from 'lucide-react'
 import { useProcessingStatus } from '../hooks/useProcessingStatus'
 import { ProcessingStatus as ProcessingStatusType } from '../interfaces/processing'
+import { DateRangePicker } from './DateRangePicker'
 
 interface ProcessingStatusProps {
   sessionId: string
+  key?: number
 }
 
 function getStatusColor(status: string) {
@@ -33,7 +36,7 @@ function getStatusIcon(status: string) {
   }
 }
 
-export function ProcessingStatus({ sessionId }: ProcessingStatusProps) {
+export function ProcessingStatus({ sessionId, key }: ProcessingStatusProps) {
   const {
     statuses,
     loadingStatus,
@@ -43,6 +46,20 @@ export function ProcessingStatus({ sessionId }: ProcessingStatusProps) {
     setEndDate,
     fetchStatus,
   } = useProcessingStatus(sessionId)
+
+  // Auto-refresh quando o componente é remontado (key muda) ou quando sessionId muda
+  useEffect(() => {
+    if (sessionId) {
+      // Se key foi fornecido, significa que houve um processamento e devemos atualizar
+      if (key !== undefined) {
+        // Aguardar um pouco para dar tempo do processamento iniciar
+        const timeout = setTimeout(() => {
+          fetchStatus()
+        }, 2000)
+        return () => clearTimeout(timeout)
+      }
+    }
+  }, [key, sessionId, fetchStatus])
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mt-6">
@@ -61,26 +78,24 @@ export function ProcessingStatus({ sessionId }: ProcessingStatusProps) {
         </button>
       </div>
 
-      <div className="grid grid-cols-2 gap-4 mb-4">
-        <div>
-          <label className="block text-sm font-medium mb-2">Start Date</label>
-          <input
-            type="date"
-            value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
-            className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium mb-2">End Date</label>
-          <input
-            type="date"
-            value={endDate}
-            onChange={(e) => setEndDate(e.target.value)}
-            className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700"
-          />
-        </div>
-      </div>
+      <DateRangePicker
+        startDate={startDate}
+        endDate={endDate}
+        onStartDateChange={(date) => {
+          setStartDate(date)
+        }}
+        onEndDateChange={(date) => {
+          setEndDate(date)
+        }}
+        onDateChange={() => {
+          // Auto-refresh quando as datas mudarem (incluindo botões de atalho)
+          if (sessionId) {
+            setTimeout(() => fetchStatus(), 300)
+          }
+        }}
+      />
+
+      <div className="my-10"></div>
 
       {loadingStatus ? (
         <div className="text-center py-8">Carregando status...</div>

@@ -26,6 +26,8 @@ export function CsvProcessor({
     setRecipientEmail,
     recipientName,
     setRecipientName,
+    locale,
+    setLocale,
     processType,
     setProcessType,
     ignoreOrderedSize,
@@ -153,26 +155,41 @@ export function CsvProcessor({
         </div>
 
         {enableNotification && (
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium mb-2">Recipient Email *</label>
-              <input
-                type="email"
-                value={recipientEmail}
-                onChange={(e) => setRecipientEmail(e.target.value)}
-                placeholder="example@sizebay.com"
-                className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700"
-              />
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium mb-2">Recipient Email *</label>
+                <input
+                  type="email"
+                  value={recipientEmail}
+                  onChange={(e) => setRecipientEmail(e.target.value)}
+                  placeholder="example@sizebay.com"
+                  className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-2">Recipient Name *</label>
+                <input
+                  type="text"
+                  value={recipientName}
+                  onChange={(e) => setRecipientName(e.target.value)}
+                  placeholder="Roberto Alves"
+                  className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700"
+                />
+              </div>
             </div>
             <div>
-              <label className="block text-sm font-medium mb-2">Recipient Name *</label>
-              <input
-                type="text"
-                value={recipientName}
-                onChange={(e) => setRecipientName(e.target.value)}
-                placeholder="Roberto Alves"
+              <label className="block text-sm font-medium mb-2">Locale</label>
+              <select
+                value={locale}
+                onChange={(e) => setLocale(e.target.value as 'pt' | 'en' | 'es')}
                 className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700"
-              />
+              >
+                <option value="pt">Português (pt)</option>
+                <option value="en">English (en)</option>
+                <option value="es">Español (es)</option>
+              </select>
+              <p className="text-xs text-gray-500 mt-1">Locale para o template de email. Padrão: pt</p>
             </div>
           </div>
         )}
