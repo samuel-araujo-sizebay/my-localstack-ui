@@ -52,52 +52,33 @@ export class CsvParser {
 
   /**
    * Extrai tamanho comprado das linhas próximas ao SKU
+   * Estrutura esperada:
+   * - Linha com SKU: ID \t SKU
+   * - Linha com "Product image"
+   * - Linha com nome do produto
+   * - Linha com: -- \t TAMANHO \t QUANTIDADE
+   * 
+   * Se não encontrar o padrão exato, retorna "One Size"
    */
   static extractPurchasedSize(lines: string[], startIndex: number): { size: string; quantity: string } {
     let purchasedSize = 'One Size'
     let quantity = '1'
 
-    for (let j = startIndex; j < Math.min(startIndex + 5, lines.length); j++) {
+    // Procurar nas próximas 6 linhas (SKU, Product image, Nome, Tamanho, Preço, Return)
+    for (let j = startIndex; j < Math.min(startIndex + 6, lines.length); j++) {
       const nextLine = lines[j]
-      const tabCols = nextLine.split(/\t+/).filter(c => c.trim())
+      if (!nextLine || nextLine.trim().length === 0) continue
 
-      // Procurar padrão: -- \t TAMANHO \t QUANTIDADE
-      if (tabCols.length >= 3) {
-        if ((tabCols[0] === '--' || tabCols[0] === '') && tabCols[1] && tabCols[1] !== '--') {
-          purchasedSize = tabCols[1].trim()
-          if (tabCols[2] && /^\d+$/.test(tabCols[2].trim())) {
-            quantity = tabCols[2].trim()
-          }
-          break
-        }
-
-        // Se não tem '--', tentar pegar da segunda coluna se não for número (preço)
-        if (tabCols[1] && 
-            tabCols[1] !== '--' && 
-            !tabCols[1].match(/^\d+\.?\d*\s*(SEK|EUR|USD|R\$|€|\$)/i) &&
-            tabCols[1].trim().length > 0) {
-          purchasedSize = tabCols[1].trim()
-          if (tabCols[2] && /^\d+$/.test(tabCols[2].trim())) {
-            quantity = tabCols[2].trim()
-          }
+      // Procurar apenas pelo padrão exato: -- \t TAMANHO \t QUANTIDADE
+      const sizeQtyMatch = nextLine.match(/--\s*\t\s*([^\t\n]+?)\s*\t\s*(\d+)/)
+      if (sizeQtyMatch) {
+        const potentialSize = sizeQtyMatch[1].trim()
+        if (potentialSize && potentialSize !== '--' && !potentialSize.match(/^\d+\.?\d*$/)) {
+          purchasedSize = potentialSize
+          quantity = sizeQtyMatch[2].trim()
           break
         }
       }
-
-      // Se não encontrou em tabs, tentar buscar qualquer texto que pareça tamanho
-      if (purchasedSize === 'One Size') {
-        const sizeQtyMatch = nextLine.match(/\t([^\t]+?)\t(\d+)/)
-        if (sizeQtyMatch && sizeQtyMatch[1] && sizeQtyMatch[1] !== '--') {
-          const potentialSize = sizeQtyMatch[1].trim()
-          if (!potentialSize.match(/^\d+\.?\d*$/) && potentialSize.length > 0) {
-            purchasedSize = potentialSize
-            quantity = sizeQtyMatch[2]
-            break
-          }
-        }
-      }
-
-      if (purchasedSize !== 'One Size') break
     }
 
     return { size: purchasedSize, quantity }
@@ -105,13 +86,22 @@ export class CsvParser {
 
   /**
    * Extrai produtos do texto usando estrutura tabular
+   * Estrutura esperada:
+   * - Linha com cabeçalho: ID | SKU | Product | ...
+   * - Para cada produto:
+   *   - Linha: ID \t SKU
+   *   - Linha: "Product image"
+   *   - Linha: Nome do produto
+   *   - Linha: -- \t TAMANHO \t QUANTIDADE
+   *   - Linha: Preço
    */
   static parseProductsFromTable(
     text: string,
     orderId: string | null,
     formattedDate: string
   ): ParsedProduct[] {
-    const lines = text.split('\n').map(l => l.trim()).filter(l => l)
+    // Não remover espaços/tabs, apenas quebrar em linhas e remover linhas vazias
+    const lines = text.split('\n').map(l => l).filter(l => l.trim().length > 0)
     const products: ParsedProduct[] = []
     
     const headerIndex = this.findTableHeaderIndex(lines)
@@ -122,12 +112,13 @@ export class CsvParser {
     let i = headerIndex + 1
     while (i < lines.length) {
       const line = lines[i]
-      if (!line || line.length < 5) {
+      if (!line || line.trim().length < 5) {
         i++
         continue
       }
 
       // Procurar por SKU completo no formato: 1017-002042-0008-579 ou 1704-000043-0179-000
+      // Pode estar na linha com ID e SKU separados por tab
       const skuMatch = line.match(/(\d{4}-\d{6}-\d{4}(?:-\d{3})?)/)
       
       if (skuMatch) {
@@ -142,7 +133,9 @@ export class CsvParser {
           quantity: quantity,
         })
 
-        i += 3
+        // Pular as linhas do produto atual (SKU, Product image, Nome, Tamanho, Preço)
+        // Avançar mais linhas para pegar o próximo produto
+        i += 5
       } else {
         i++
       }

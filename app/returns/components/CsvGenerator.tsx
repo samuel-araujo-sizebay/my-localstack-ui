@@ -16,6 +16,7 @@ export function CsvGenerator({ sessionId, onFileKeyGenerated }: CsvGeneratorProp
     productFieldType,
     setProductFieldType,
     generateCsv,
+    updateCsv,
     downloadCsv,
     copyCsvToClipboard,
   } = useCsvGenerator()
@@ -28,6 +29,7 @@ export function CsvGenerator({ sessionId, onFileKeyGenerated }: CsvGeneratorProp
       return
     }
 
+    // Usar o CSV editado (pode ter sido modificado pelo usuário)
     const csvBlob = new Blob([generatedCsv.csv], { type: 'text/csv' })
     const csvFile = new File([csvBlob], generatedCsv.fileKey.split('/').pop() || 'returns.csv', { type: 'text/csv' })
     
@@ -121,11 +123,11 @@ export function CsvGenerator({ sessionId, onFileKeyGenerated }: CsvGeneratorProp
             </div>
             
             <div>
-              <label className="block text-sm font-medium mb-2">CSV Gerado:</label>
+              <label className="block text-sm font-medium mb-2">CSV Gerado (editável):</label>
               <textarea
                 value={generatedCsv.csv}
-                readOnly
-                className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-900 font-mono text-xs h-40"
+                onChange={(e) => updateCsv(e.target.value)}
+                className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 font-mono text-xs h-40"
               />
               <p className="text-sm text-gray-500 mt-2">
                 {generatedCsv.csv.split('\n').length - 1} linha(s) gerada(s)

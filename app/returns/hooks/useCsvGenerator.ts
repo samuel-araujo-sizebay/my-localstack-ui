@@ -35,6 +35,15 @@ export function useCsvGenerator() {
     }
   }
 
+  const updateCsv = (newCsv: string) => {
+    if (generatedCsv) {
+      setGeneratedCsv({
+        ...generatedCsv,
+        csv: newCsv,
+      })
+    }
+  }
+
   const downloadCsv = () => {
     if (!generatedCsv) {
       alert('Gere o CSV primeiro')
@@ -72,6 +81,7 @@ export function useCsvGenerator() {
     productFieldType,
     setProductFieldType,
     generateCsv,
+    updateCsv,
     downloadCsv,
     copyCsvToClipboard,
   }
